@@ -6,8 +6,8 @@ import base64
 
 load_dotenv()  # load environment variables from .env file
 api_key = os.environ.get('API_KEY', 'textbelt')
-url = "google.com"
-script = "Testing 1 2 3"
+url = "[domain]"
+script = "[HR Reminder] Please review and confirm your contact details by July 15 to ensure our records are up to date. Access your HR portal here: "
 
 
 """Send a smishing campaign to a group of people defined in a csv file.
@@ -19,8 +19,9 @@ def send_campaign(filename):
     print(df)
     for index, row in df.iterrows():
         person = row.to_dict()
-        message = f"{script} {make_phishing_link(person['email'], url)}"
-        send_text(person['number'], message)
+        message = script + make_phishing_link(person['email'], url)
+        print(message)
+        # send_text(person['number'], message) # uncomment this line to send the message
         
 """Make a phishing link using a base64-encoded id.
 
@@ -41,7 +42,7 @@ def send_text(number, message):
     resp = requests.post('https://textbelt.com/text', {
     'phone': number,
     'message': message,
-    'key': api_key + '_test'
+    'key': api_key + '_test' # only take it off test mode if you're ready to send it out
     })
     print(resp.json())
 
