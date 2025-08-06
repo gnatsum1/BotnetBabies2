@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Campaign UI</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; background: #f7f7f7; }
+        .container { background: #fff; padding: 2em; border-radius: 8px; max-width: 500px; margin: auto; box-shadow: 0 2px 8px #ccc; }
+        label { display: block; margin-top: 1em; }
+        input[type="text"], textarea { width: 100%; padding: 0.5em; margin-top: 0.2em; border: 1px solid #ccc; border-radius: 4px; }
+        input[type="file"] { margin-top: 0.5em; }
+        button { margin-top: 1.5em; padding: 0.7em 2em; background: #0078d7; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #005fa3; }
+        .preview { background: #f0f0f0; padding: 1em; border-radius: 4px; margin-top: 1em; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Email Campaign UI</h2>
+    <form id="campaignForm">
+        <label for="csvFile">CSV File:</label>
+        <input type="file" id="csvFile" accept=".csv" required>
+
+        <div id="personSelectDiv" class="person-list" style="display:none;"></div>
+
+        <label for="template">Email Template:</label>
+        <select id="template">
+            <option value="hr">HR Reminder</option>
+            <option value="tow">Towing Warning</option>
+            <option value="customs">Customs Notice</option>
+        </select>
+
+
+        <label for="context">Context/Details:</label>
+        <small style="color:#555;display:block;margin-bottom:0.5em;">This will be appended to the email body for all selected recipients, allowing you to personalize or target the message (e.g., department, event, or custom note).</small>
+        <textarea id="context" rows="3" placeholder="Enter target details or context..."></textarea>
+
+        <button type="button" onclick="previewEmails()">Preview Emails</button>
+        <button type="submit">Send Emails</button>
+    </form>
+    <div id="preview" class="preview" style="display:none;"></div>
+</div>
+<script>
+let contacts = [];
+
+const templates = {
+    hr: {
+        subject: "HR Reminder: Confirm Your Contact Details",
+        body: "Please review and confirm your contact details by July 15 to ensure our records are up to date.",
+        tags: [
+            "Phishing: Spearphishing via Service (T1194)",
+            "Impersonation: HR Department"
+        ]
+    },
+    tow: {
+        subject: "Urgent: Vehicle Towing Notice",
+        body: "Attention: Your vehicle is scheduled for towing due to a parking violation. To avoid immediate towing and resolve this issue, please visit the following link: [LINK]\nFailure to respond within 24 hours may result in additional fees.",
+        tags: [
+            "Phishing: Spearphishing via Service (T1194)",
+            "Urgency/Threat: Immediate Action Required",
+            "Pretext: Vehicle Violation"
+        ]
+    },
+    customs: {
+        subject: "Action Required: Package Held at Customs",
+        body: "Dear Customer,\n\nYour package is currently being held at customs due to missing information. To release your package and avoid return or additional charges, please complete the required form at the following link: [LINK]\n\nThank you for your prompt attention.",
+        tags: [
+            "Phishing: Spearphishing via Service (T1194)",
+            "Pretext: Delivery/Logistics",
+            "Impersonation: Customs/Shipping"
+        ]
+    }
+};
+
+function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',');
+    return lines.slice(1).map(line => {
+        const values = line.split(',');
+        let obj = {};
+        headers.forEach((h, i) => obj[h.trim()] = values[i] ? values[i].trim() : '');
+        return obj;
+    });
+}
+
+document.getElementById('csvFile').addEventListener('change', function() {
+    const fileInput = document.getElementById('csvFile');
+    const personSelectDiv = document.getElementById('personSelectDiv');
+    if (!fileInput.files.length) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        contacts = parseCSV(e.target.result);
+        let html = '<b>Select Recipients:</b><br>';
+        contacts.forEach((person, idx) => {
+            html += `<label><input type='checkbox' class='personCheck' value='${idx}' checked> ${person.name || person.email}</label><br>`;
+        });
+        personSelectDiv.innerHTML = html;
+        personSelectDiv.style.display = 'block';
+    };
+    reader.readAsText(fileInput.files[0]);
+});
+
+function previewEmails() {
+    const context = document.getElementById('context').value;
+    const previewDiv = document.getElementById('preview');
+    const templateKey = document.getElementById('template').value;
+    const template = templates[templateKey];
+    const checked = Array.from(document.getElementsByClassName('personCheck')).filter(cb => cb.checked);
+    if (!checked.length) {
+        alert('Please select at least one recipient.');
+        return;
+    }
+    let html = '';
+    checked.forEach(cb => {
+        const person = contacts[cb.value];
+        html += `<b>To:</b> ${person.email || ''}<br>`;
+        html += `<b>Subject:</b> ${template.subject}<br>`;
+        html += `<b>Body:</b><br> ${template.body}`;
+        if (context) html += `<br><br>Context: ${context}`;
+        if (template.tags && template.tags.length) {
+            html += `<br><b>Threat Tags:</b> <span style='color:#b00'>${template.tags.join(', ')}</span>`;
+        }
+        html += '<hr>';
+    });
+    previewDiv.innerHTML = html;
+    previewDiv.style.display = 'block';
+}
+
+document.getElementById('campaignForm').onsubmit = function(e) {
+    e.preventDefault();
+    alert('This demo UI does not actually send emails. Integrate with your backend to enable sending.');
+};
+</script>
+</body>
+</html>
