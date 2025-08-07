@@ -4,18 +4,117 @@
     <meta charset="UTF-8">
     <title>Email Campaign UI</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 2em; background: #f7f7f7; }
-        .container { background: #fff; padding: 2em; border-radius: 8px; max-width: 500px; margin: auto; box-shadow: 0 2px 8px #ccc; }
-        label { display: block; margin-top: 1em; }
-        input[type="text"], textarea { width: 100%; padding: 0.5em; margin-top: 0.2em; border: 1px solid #ccc; border-radius: 4px; }
-        input[type="file"] { margin-top: 0.5em; }
-        button { margin-top: 1.5em; padding: 0.7em 2em; background: #0078d7; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #005fa3; }
-        .preview { background: #f0f0f0; padding: 1em; border-radius: 4px; margin-top: 1em; }
+        body {
+            background: #181818;
+            color: #00ff00;
+            font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace;
+            margin: 2em;
+        }
+        .container {
+            background: #222;
+            padding: 2em;
+            border-radius: 8px;
+            max-width: 600px;
+            margin: auto;
+            box-shadow: 0 2px 16px #0f0a, 0 0 0 2px #00ff0033;
+            border: 1px solid #00ff0044;
+        }
+        h2 {
+            color: #00ff00;
+            text-shadow: 0 0 8px #00ff0088;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        label {
+            display: block;
+            margin-top: 1em;
+            color: #00ff00;
+            font-weight: bold;
+        }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 0.5em;
+            margin-top: 0.2em;
+            background: #181818;
+            color: #00ff00;
+            border: 1px solid #00ff0088;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 1em;
+        }
+        input[type="file"] {
+            margin-top: 0.5em;
+            color: #00ff00;
+        }
+        button {
+            margin-top: 1.5em;
+            padding: 0.7em 2em;
+            background: #181818;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1em;
+            box-shadow: 0 0 8px #00ff0044;
+            transition: background 0.2s, color 0.2s;
+        }
+        button:hover {
+            background: #00ff00;
+            color: #181818;
+        }
+        .preview {
+            background: #111;
+            color: #00ff00;
+            padding: 1em;
+            border-radius: 4px;
+            margin-top: 1em;
+            font-size: 1em;
+            font-family: inherit;
+            box-shadow: 0 0 8px #00ff0044;
+            border: 1px solid #00ff0044;
+        }
+        .person-list label {
+            color: #00ff00;
+            font-family: inherit;
+        }
+        ::selection {
+            background: #00ff00;
+            color: #181818;
+        }
+        small {
+            color: #00ff00bb;
+        }
+        .terminal-bar {
+            background: #00ff00;
+            color: #181818;
+            font-weight: bold;
+            padding: 0.5em 1em;
+            border-radius: 4px 4px 0 0;
+            margin-bottom: 1em;
+            letter-spacing: 1px;
+            box-shadow: 0 0 8px #00ff0044;
+        }
+        .preview hr {
+            border: none;
+            border-top: 1px dashed #00ff0044;
+            margin: 1em 0;
+        }
+        .preview b {
+            color: #00ff00;
+        }
+        .preview span {
+            color: #00ff00;
+            background: #222;
+            padding: 0.1em 0.3em;
+            border-radius: 2px;
+        }
     </style>
+    <link href="https://fonts.googleapis.com/css?family=Fira+Mono:400,700&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="container">
+    <div class="terminal-bar">[root@simulator ~]$ Email Campaign UI</div>
     <h2>Email Campaign UI</h2>
     <form id="campaignForm">
         <label for="csvFile">CSV File:</label>
@@ -30,9 +129,8 @@
             <option value="customs">Customs Notice</option>
         </select>
 
-
         <label for="context">Context/Details:</label>
-        <small style="color:#555;display:block;margin-bottom:0.5em;">This will be appended to the email body for all selected recipients, allowing you to personalize or target the message (e.g., department, event, or custom note).</small>
+        <small>This will be appended to the email body for all selected recipients, allowing you to personalize or target the message (e.g., department, event, or custom note).</small>
         <textarea id="context" rows="3" placeholder="Enter target details or context..."></textarea>
 
         <button type="button" onclick="previewEmails()">Preview Emails</button>
