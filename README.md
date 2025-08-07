@@ -37,7 +37,7 @@ This project provides a simple HTML front-end and Python backend for simulating 
 1. Clone this repository:
    ```
    git clone https://github.com/alicmc/SmishingTest.git
-   cd SmishingTest
+   cd BotnetBabies2
    ```
 2. Install dependencies:
     ```
