@@ -3,22 +3,14 @@ DISCLAIMER: This script is for educational and demonstration purposes only.
 Do not use this script for any illegal, unethical, or harmful activities.
 All templates and outputs are simulated and should not be used for real-world attacks or social engineering.
 
-WARNING: The script is now configured to send real emails using SMTP. Use with caution and only with explicit permission from all recipients.
+Tip: The 'Send Emails' button in the HTML UI does not actually send emails. It is for demonstration only. Integrate with a backend to enable real sending.
 """
 
-import os
+
+
 import pandas
 import re
-from email.mime.text import MIMEText
-from dotenv import load_dotenv
-import smtplib
 
-load_dotenv()  # load environment variables from .env file
-smtp_server = os.environ.get('SMTP_SERVER', 'smtp.example.com')
-smtp_port = int(os.environ.get('SMTP_PORT', 587))
-smtp_user = os.environ.get('SMTP_USER', 'user@example.com')
-smtp_password = os.environ.get('SMTP_PASSWORD', 'password')
-from_email = os.environ.get('FROM_EMAIL', smtp_user)
 subject = "HR Reminder: Confirm Your Contact Details"
 body = "Please review and confirm your contact details by July 15 to ensure our records are up to date."
 
@@ -32,18 +24,12 @@ tow_warning_body = (
 
 customs_subject = "Action Required: Package Held at Customs"
 customs_body = (
-    "Dear Customer,\n\n"
-    "Your package is currently being held at customs due to missing information. "
-    "To release your package and avoid return or additional charges, please complete the required form at the following link: {link}\n\n"
-    "Thank you for your prompt attention."
+    "Attention: Your package is being held at customs due to missing information. "
+    "To release your package and avoid return or additional charges, please visit the following link: {link}\n"
+    "You may also scan the following QR code to resolve the issue: [QR CODE]\n"
+    "Failure to respond within 24 hours may result in additional fees."
 )
 
-
-
-"""Send an email campaign to a group of people defined in a csv file.
-
-filename: a csv file containing information in the format name,number,email.
-"""
 def render_preview(to_email, subject, body):
     print("\n--- Email Preview ---")
     print(f"To: {to_email}")
@@ -53,18 +39,17 @@ def render_preview(to_email, subject, body):
     print("--- End Preview ---\n")
 
 def is_valid_filename(filename):
-    # Only allow .csv files, no path traversal
     return bool(re.match(r'^[\w,\s-]+\.csv$', filename))
 
 def is_valid_email(email):
-    # Basic email validation
+    email = email.strip()
     return bool(re.match(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$', email))
 
 def sanitize_context(context):
-    # Remove potentially dangerous characters
-    return re.sub(r'[^\w\s.,:;!?@#\-]', '', context)
+    # Remove non-printable ASCII characters
+    return re.sub(r'[^\x20-\x7E]', '', context)
 
-def send_campaign(filename, context=None):
+def send_campaign(filename, template_choice, context=None, only_emails=None):
     if not is_valid_filename(filename):
         print("Invalid filename. Only .csv files in the current directory are allowed.")
         return
@@ -76,47 +61,110 @@ def send_campaign(filename, context=None):
     print(df)
     if context:
         context = sanitize_context(context)
+
+    # Select template
+    if template_choice == "hr":
+        chosen_subject = subject
+        chosen_body = body
+        chosen_tags = [
+            "Phishing: Spearphishing via Service (T1194)",
+            "Impersonation: HR Department"
+        ]
+    elif template_choice == "tow":
+        chosen_subject = tow_warning_subject
+        chosen_body = tow_warning_body
+        chosen_tags = [
+            "Phishing: Spearphishing via Service (T1194)",
+            "Urgency/Threat: Immediate Action Required",
+            "Pretext: Vehicle Violation"
+        ]
+    elif template_choice == "customs":
+        chosen_subject = customs_subject
+        chosen_body = customs_body
+        chosen_tags = [
+            "Phishing: Spearphishing via Service (T1194)",
+            "Pretext: Delivery/Logistics",
+            "Impersonation: Customs/Shipping"
+        ]
+    else:
+        print("Invalid template choice. Using default HR Reminder.")
+        chosen_subject = subject
+        chosen_body = body
+        chosen_tags = [
+            "Phishing: Spearphishing via Service (T1194)",
+            "Impersonation: HR Department"
+        ]
+
+    def should_send(email):
+        if only_emails is not None:
+            return email in only_emails
+        return True
+
     for index, row in df.iterrows():
         person = row.to_dict()
-        email = person.get('email', '')
+        email = person.get('email', '').strip()
         if not is_valid_email(email):
             print(f"Skipping invalid email: {email}")
             continue
-        # Choose template and personalize
-        personalized_body = body
-        personalized_subject = subject
+        if not should_send(email):
+            continue
+        # Consistent formatting for all templates
+        personalized_body = chosen_body
+        personalized_subject = chosen_subject
         if context:
-            personalized_body = body + f"\n\nContext: {context}"
+            personalized_body = f"{chosen_body}\n\n{context}"
         render_preview(email, personalized_subject, personalized_body)
+        # Show MITRE tags after preview, not in email body
+        if chosen_tags:
+            print(f"Threat Tags: {', '.join(chosen_tags)}\n")
         send_email(email, personalized_subject, personalized_body)
 
 
-"""Send a single email using SMTP.
-
-to_email: recipient's email address.
-subject: email subject.
-message: email body.
-"""
 def send_email(to_email, subject, message):
-    msg = MIMEText(message)
-    msg['Subject'] = subject
-    msg['From'] = from_email
-    msg['To'] = to_email
-    try:
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            server.sendmail(from_email, [to_email], msg.as_string())
-        print(f"Email sent to {to_email}")
-    except Exception as e:
-        print(f"Failed to send email to {to_email}: {e}")
-
+    pass  # Output is already shown in render_preview; no need to repeat
 
 def main():
     filename = input("Please input a valid .csv filename: ").strip()
+    try:
+        df = pandas.read_csv(filename)
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return
+    emails = [row['email'].strip() for _, row in df.iterrows() if is_valid_email(row.get('email', '').strip())]
+    if not emails:
+        print("No valid emails found in the file.")
+        return
+    print("Possible recipients:")
+    for idx, email in enumerate(emails, 1):
+        print(f"{idx}. {email}")
+    selected = input("Enter recipient numbers separated by commas (e.g. 1,3): ").strip()
+    selected_indices = set()
+    for part in selected.split(','):
+        part = part.strip()
+        if part.isdigit():
+            idx = int(part)
+            if 1 <= idx <= len(emails):
+                selected_indices.add(idx-1)
+    chosen_emails = [emails[i] for i in sorted(selected_indices)]
+    if not chosen_emails:
+        print("No valid recipients selected.")
+        return
+    print("Choose a template:")
+    print("1. HR Reminder")
+    print("2. Towing Warning")
+    print("3. Customs Notice")
+    num_choice = input("Enter template number (1/2/3): ").strip()
+    if num_choice == "1":
+        template_choice = "hr"
+    elif num_choice == "2":
+        template_choice = "tow"
+    elif num_choice == "3":
+        template_choice = "customs"
+    else:
+        print("Invalid choice. Using default HR Reminder.")
+        template_choice = "hr"
     context = input("Enter any target details or context to tailor the message (or leave blank): ").strip()
-    send_campaign(filename, context if context else None)
-
+    send_campaign(filename, template_choice, context if context else None, only_emails=chosen_emails)
 
 if __name__ == "__main__":
     main()

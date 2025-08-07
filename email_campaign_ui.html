@@ -72,6 +72,11 @@ const templates = {
     }
 };
 
+function sanitizeContext(context) {
+    // Remove non-printable ASCII characters
+    return context.replace(/[^\x20-\x7E]/g, '');
+}
+
 function parseCSV(text) {
     const lines = text.trim().split('\n');
     const headers = lines[0].split(',');
@@ -79,6 +84,8 @@ function parseCSV(text) {
         const values = line.split(',');
         let obj = {};
         headers.forEach((h, i) => obj[h.trim()] = values[i] ? values[i].trim() : '');
+        // Strip spaces from email
+        if (obj.email) obj.email = obj.email.trim();
         return obj;
     });
 }
@@ -101,7 +108,8 @@ document.getElementById('csvFile').addEventListener('change', function() {
 });
 
 function previewEmails() {
-    const context = document.getElementById('context').value;
+    const contextRaw = document.getElementById('context').value;
+    const context = sanitizeContext(contextRaw);
     const previewDiv = document.getElementById('preview');
     const templateKey = document.getElementById('template').value;
     const template = templates[templateKey];
@@ -116,7 +124,7 @@ function previewEmails() {
         html += `<b>To:</b> ${person.email || ''}<br>`;
         html += `<b>Subject:</b> ${template.subject}<br>`;
         html += `<b>Body:</b><br> ${template.body}`;
-        if (context) html += `<br><br>Context: ${context}`;
+        if (context) html += `<br><br>${context}`;
         if (template.tags && template.tags.length) {
             html += `<br><b>Threat Tags:</b> <span style='color:#b00'>${template.tags.join(', ')}</span>`;
         }

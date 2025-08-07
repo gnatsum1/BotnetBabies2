@@ -1,30 +1,32 @@
-# Smishing Campaign Script
+# Email Phishing Simulation App
 
-This Python script sends simulated smishing messages to a list of employees for internal security awareness training. It reads a CSV file containing employee information and sends personalized messages using the [Textbelt](https://textbelt.com) SMS API.
+This project provides a simple HTML front-end and Python backend for simulating email phishing campaigns for internal security awareness training. It allows you to preview and customize simulated phishing emails to selected recipients from a CSV file. No real emails are sent.
 
 ---
 
 ## ⚠️ Disclaimer
 
-**This script is intended for ethical use only**—e.g., internal phishing simulation campaigns authorized by your organization’s cybersecurity team. Do not use this for illegal or unauthorized activity.
+**This app is for ethical, educational, and authorized use only.** Do not use for illegal, unethical, or unauthorized activity. All templates and outputs are simulated and should not be used for real-world attacks or social engineering.
 
 ---
 
 ## Features
 
-- Sends personalized phishing-style SMS messages to a list of phone numbers.
-- Encodes email addresses in phishing links using Base64.
-- Uses a secure `.env` file for API key storage.
-- Easy integration with the Textbelt SMS API.
+- Preview simulated phishing-style emails to selected recipients (no sending).
+- Choose from multiple phishing templates (HR, towing, customs, etc.) with threat tagging (MITRE ATT&CK).
+- Add custom context/details to personalize messages (context appears after the body and before threat tags in previews).
+- Select individual recipients from your CSV file in the UI.
+- HTML front-end for easy campaign setup and preview.
+- Python backend for console-based preview (no sending).
+- MITRE threat tags are shown in the preview only and are not part of the actual email body.
 
 ---
 
 ## Prerequisites
 
 - Python 3.7+
-- A `.env` file with your `API_KEY`
-- [Textbelt](https://textbelt.com) account (free test mode available)
 - CSV file with columns: `name`, `number`, `email`
+- Modern web browser (for HTML UI)
 
 ---
 
@@ -39,40 +41,36 @@ This Python script sends simulated smishing messages to a list of employees for 
     ```
     pip install -r requirements.txt
     ```
-3. Create a .env file in the root directory:
-    ```
-    API_KEY=your_textbelt_api_key
-    ```
-4. Prepare your CSV file:
+
+3. Prepare your CSV file:
     ```
     name,number,email
     John Doe,5551234567,john@example.com
     Jane Smith,5559876543,jane@example.com
     ```
 
+---
+
 ## Usage
 
-To run the campaign:
-```
-python smishing.py
-```
-When prompted, enter the path to your CSV file.
+### Front-End (HTML UI)
 
-**Note**: By default, the script only prints the messages. To actually send messages, uncomment the line in `send_campaign()`:
-```
-# send_text(person['number'], message)
-```
-Be sure to modify the domain and message to suit your own needs.
+1. Open `email_campaign_ui.html` in your web browser.
+2. Select your CSV file, choose recipients, pick a template, and add context.
+3. Click "Preview Emails" to see the simulated messages and threat tags (tags are not part of the email body).
+4. (Demo only) The UI does not send emails; integrate with the backend to enable sending.
 
-## Example Output
+### Backend (Python)
 
-```
-[HR Reminder] Please review and confirm your contact details by July 15 to ensure our records are up to date. Access your HR portal here: hr.mycompany.com/am9obi5kb2VAZXhhbXBsZS5jb20=
-```
+1. Run `main.py` in your terminal.
+2. Follow prompts to select recipients, template, and context.
+3. Previewed emails and threat tags will be shown in the console (tags are not part of the email body).
+4. No emails are sent.
+
+---
 
 ## Security Tips
 
-* Use _test mode while testing with Textbelt.
-    * Don't get out of test mode unless you're 100% sure you want to send the message since it costs credits
-* Do not store sensitive production keys in code.
-* Log recipient interactions (if applicable) responsibly and ethically.
+- Never use this app for real-world phishing or malicious activity.
+- Do not store sensitive production credentials in code or public repos.
+- Log and handle recipient data responsibly and ethically.
