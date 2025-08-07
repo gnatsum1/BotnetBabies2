@@ -214,6 +214,8 @@ function previewEmails() {
     const checked = Array.from(document.getElementsByClassName('personCheck')).filter(cb => cb.checked);
     if (!checked.length) {
         alert('Please select at least one recipient.');
+        previewDiv.style.display = 'none';
+        removeExportButtons();
         return;
     }
     let html = '';
@@ -223,27 +225,46 @@ function previewEmails() {
         html += `<b>Subject:</b> ${template.subject}<br>`;
         html += `<b>Body:</b><br> ${template.body}`;
         if (context) html += `<br><br>${context}`;
+        html += '<br><br>';
         if (template.tags && template.tags.length) {
-            html += `<br><b>Threat Tags:</b> <span style='color:#b00'>${template.tags.join(', ')}</span>`;
+            html += `<b>Threat Tags:</b> <span style='color:#b00'>${template.tags.join(', ')}</span>`;
         }
         html += '<hr>';
     });
     previewDiv.innerHTML = html;
     previewDiv.style.display = 'block';
+    addExportButtons();
+}
 
-    // Add export buttons below preview
-    const exportHtmlBtn = document.createElement('button');
-    exportHtmlBtn.textContent = 'Export as HTML';
-    exportHtmlBtn.onclick = function() { exportPreviews('html'); };
-    const exportJsonBtn = document.createElement('button');
-    exportJsonBtn.textContent = 'Export as JSON';
-    exportJsonBtn.onclick = function() { exportPreviews('json'); };
-    const exportPdfBtn = document.createElement('button');
-    exportPdfBtn.textContent = 'Export as PDF';
-    exportPdfBtn.onclick = function() { exportPreviews('pdf'); };
-    previewDiv.parentNode.insertBefore(exportHtmlBtn, previewDiv.nextSibling);
-    previewDiv.parentNode.insertBefore(exportJsonBtn, exportHtmlBtn.nextSibling);
-    previewDiv.parentNode.insertBefore(exportPdfBtn, exportJsonBtn.nextSibling);
+function addExportButtons() {
+    const previewDiv = document.getElementById('preview');
+    removeExportButtons();
+    if (previewDiv.style.display === 'block') {
+        const exportHtmlBtn = document.createElement('button');
+        exportHtmlBtn.textContent = 'Export as HTML';
+        exportHtmlBtn.id = 'exportHtmlBtn';
+        exportHtmlBtn.onclick = function() { exportPreviews('html'); };
+        previewDiv.parentNode.insertBefore(exportHtmlBtn, previewDiv.nextSibling);
+
+        const exportJsonBtn = document.createElement('button');
+        exportJsonBtn.textContent = 'Export as JSON';
+        exportJsonBtn.id = 'exportJsonBtn';
+        exportJsonBtn.onclick = function() { exportPreviews('json'); };
+        previewDiv.parentNode.insertBefore(exportJsonBtn, exportHtmlBtn.nextSibling);
+
+        const exportPdfBtn = document.createElement('button');
+        exportPdfBtn.textContent = 'Export as PDF';
+        exportPdfBtn.id = 'exportPdfBtn';
+        exportPdfBtn.onclick = function() { exportPreviews('pdf'); };
+        previewDiv.parentNode.insertBefore(exportPdfBtn, exportJsonBtn.nextSibling);
+    }
+}
+
+function removeExportButtons() {
+    ['exportHtmlBtn', 'exportJsonBtn', 'exportPdfBtn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.parentNode.removeChild(btn);
+    });
 }
 
 function exportPreviews(format) {
