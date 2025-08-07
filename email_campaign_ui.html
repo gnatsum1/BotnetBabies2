@@ -132,12 +132,121 @@ function previewEmails() {
     });
     previewDiv.innerHTML = html;
     previewDiv.style.display = 'block';
+
+    // Add export buttons below preview
+    const exportHtmlBtn = document.createElement('button');
+    exportHtmlBtn.textContent = 'Export as HTML';
+    exportHtmlBtn.onclick = function() { exportPreviews('html'); };
+    const exportJsonBtn = document.createElement('button');
+    exportJsonBtn.textContent = 'Export as JSON';
+    exportJsonBtn.onclick = function() { exportPreviews('json'); };
+    const exportPdfBtn = document.createElement('button');
+    exportPdfBtn.textContent = 'Export as PDF';
+    exportPdfBtn.onclick = function() { exportPreviews('pdf'); };
+    previewDiv.parentNode.insertBefore(exportHtmlBtn, previewDiv.nextSibling);
+    previewDiv.parentNode.insertBefore(exportJsonBtn, exportHtmlBtn.nextSibling);
+    previewDiv.parentNode.insertBefore(exportPdfBtn, exportJsonBtn.nextSibling);
+}
+
+function exportPreviews(format) {
+    const contextRaw = document.getElementById('context').value;
+    const context = sanitizeContext(contextRaw);
+    const templateKey = document.getElementById('template').value;
+    const template = templates[templateKey];
+    const checked = Array.from(document.getElementsByClassName('personCheck')).filter(cb => cb.checked);
+    if (!checked.length) {
+        alert('Please select at least one recipient.');
+        return;
+    }
+    let exports = [];
+    checked.forEach(cb => {
+        const person = contacts[cb.value];
+        exports.push({
+            to: person.email || '',
+            subject: template.subject,
+            body: template.body,
+            context: context,
+            tags: template.tags
+        });
+    });
+    if (format === 'html') {
+        let html = '<html><body>';
+        exports.forEach(e => {
+            html += `<b>To:</b> ${e.to}<br>`;
+            html += `<b>Subject:</b> ${e.subject}<br>`;
+            html += `<b>Body:</b><br> ${e.body}`;
+            if (e.context) html += `<br><br>${e.context}`;
+            // Add two empty lines before MITRE tag
+            html += '<br><br>';
+            if (e.tags && e.tags.length) {
+                html += `<b>Threat Tags:</b> <span style='color:#b00'>${e.tags.join(', ')}</span>`;
+            }
+            html += '<hr>';
+        });
+        html += '</body></html>';
+        const blob = new Blob([html], {type: 'text/html'});
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'email_previews.html';
+        link.click();
+    } else if (format === 'json') {
+        const blob = new Blob([JSON.stringify(exports, null, 2)], {type: 'application/json'});
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'email_previews.json';
+        link.click();
+    } else if (format === 'pdf') {
+        if (typeof window.jspdf === 'undefined') {
+            alert('jsPDF library not loaded yet. Please wait a moment and try again.');
+            return;
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        let y = 10;
+        exports.forEach(e => {
+            doc.setFontSize(12);
+            doc.text(`To: ${e.to}`, 10, y, {maxWidth: 180});
+            y += 7;
+            doc.text(`Subject: ${e.subject}`, 10, y, {maxWidth: 180});
+            y += 7;
+            doc.text('Body:', 10, y);
+            y += 7;
+            // Wrap body/context
+            let bodyLines = doc.splitTextToSize(e.body, 180);
+            bodyLines.forEach(line => { doc.text(line, 10, y); y += 7; });
+            if (e.context) {
+                let contextLines = doc.splitTextToSize(e.context, 180);
+                contextLines.forEach(line => { doc.text(line, 10, y); y += 7; });
+            }
+            // Add empty line before MITRE tag
+            y += 7;
+            if (e.tags && e.tags.length) {
+                doc.setTextColor(180,0,0);
+                let tagsLine = `Threat Tags: ${e.tags.join(', ')}`;
+                let tagsLines = doc.splitTextToSize(tagsLine, 180);
+                tagsLines.forEach(line => { doc.text(line, 10, y); y += 7; });
+                doc.setTextColor(0,0,0);
+            }
+            doc.line(10, y, 200, y);
+            y += 10;
+            if (y > 270) { doc.addPage(); y = 10; }
+        });
+        doc.save('email_previews.pdf');
+    }
 }
 
 document.getElementById('campaignForm').onsubmit = function(e) {
     e.preventDefault();
     alert('This demo UI does not actually send emails. Integrate with your backend to enable sending.');
 };
+
+// Add jsPDF CDN
+if (!document.getElementById('jspdf-script')) {
+    var script = document.createElement('script');
+    script.id = 'jspdf-script';
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    document.head.appendChild(script);
+}
 </script>
 </body>
 </html>

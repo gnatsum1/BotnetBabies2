@@ -10,6 +10,9 @@ Tip: The 'Send Emails' button in the HTML UI does not actually send emails. It i
 
 import pandas
 import re
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import simpleSplit
 
 subject = "HR Reminder: Confirm Your Contact Details"
 body = "Please review and confirm your contact details by July 15 to ensure our records are up to date."
@@ -49,7 +52,72 @@ def sanitize_context(context):
     # Remove non-printable ASCII characters
     return re.sub(r'[^\x20-\x7E]', '', context)
 
-def send_campaign(filename, template_choice, context=None, only_emails=None):
+def export_previews(previews, format):
+    if format == 'html':
+        html = '<html><body>'
+        for p in previews:
+            html += f"<b>To:</b> {p['to']}<br>"
+            html += f"<b>Subject:</b> {p['subject']}<br>"
+            html += f"<b>Body:</b><br> {p['body']}"
+            if p['context']:
+                html += f"<br><br>{p['context']}"
+            # Add two empty lines before MITRE tag
+            html += '<br><br>'
+            if p['tags']:
+                html += f"<b>Threat Tags:</b> <span style='color:#b00'>{', '.join(p['tags'])}</span>"
+            html += '<hr>'
+        html += '</body></html>'
+        with open('email_previews.html', 'w', encoding='utf-8') as f:
+            f.write(html)
+        print('Exported previews to email_previews.html')
+    elif format == 'json':
+        import json
+        with open('email_previews.json', 'w', encoding='utf-8') as f:
+            json.dump(previews, f, indent=2)
+        print('Exported previews to email_previews.json')
+    elif format == 'pdf':
+        c = canvas.Canvas('email_previews.pdf', pagesize=letter)
+        width, height = letter
+        margin_left = 40
+        margin_right = width - 40
+        max_width = margin_right - margin_left
+        y = height - 40
+        for p in previews:
+            c.setFont('Helvetica', 12)
+            c.drawString(margin_left, y, f"To: {p['to']}")
+            y -= 18
+            c.drawString(margin_left, y, f"Subject: {p['subject']}")
+            y -= 18
+            c.drawString(margin_left, y, "Body:")
+            y -= 18
+            body_lines = simpleSplit(p['body'], 'Helvetica', 12, max_width)
+            for line in body_lines:
+                c.drawString(margin_left, y, line)
+                y -= 14
+            if p['context']:
+                context_lines = simpleSplit(p['context'], 'Helvetica', 12, max_width)
+                for line in context_lines:
+                    c.drawString(margin_left, y, line)
+                    y -= 14
+            # Add empty line before MITRE tag
+            y -= 14
+            if p['tags']:
+                c.setFillColorRGB(0.7,0,0)
+                tags_line = f"Threat Tags: {', '.join(p['tags'])}"
+                tags_lines = simpleSplit(tags_line, 'Helvetica', 12, max_width)
+                for line in tags_lines:
+                    c.drawString(margin_left, y, line)
+                    y -= 18
+                c.setFillColorRGB(0,0,0)
+            c.line(margin_left, y, margin_right, y)
+            y -= 24
+            if y < 60:
+                c.showPage()
+                y = height - 40
+        c.save()
+        print('Exported previews to email_previews.pdf')
+
+def send_campaign(filename, template_choice, context=None, only_emails=None, export_format=None):
     if not is_valid_filename(filename):
         print("Invalid filename. Only .csv files in the current directory are allowed.")
         return
@@ -100,6 +168,7 @@ def send_campaign(filename, template_choice, context=None, only_emails=None):
             return email in only_emails
         return True
 
+    previews = []
     for index, row in df.iterrows():
         person = row.to_dict()
         email = person.get('email', '').strip()
@@ -118,7 +187,15 @@ def send_campaign(filename, template_choice, context=None, only_emails=None):
         if chosen_tags:
             print(f"Threat Tags: {', '.join(chosen_tags)}\n")
         send_email(email, personalized_subject, personalized_body)
-
+        previews.append({
+            'to': email,
+            'subject': personalized_subject,
+            'body': chosen_body,
+            'context': context,
+            'tags': chosen_tags
+        })
+    if export_format:
+        export_previews(previews, export_format)
 
 def send_email(to_email, subject, message):
     pass  # Output is already shown in render_preview; no need to repeat
@@ -164,7 +241,9 @@ def main():
         print("Invalid choice. Using default HR Reminder.")
         template_choice = "hr"
     context = input("Enter any target details or context to tailor the message (or leave blank): ").strip()
-    send_campaign(filename, template_choice, context if context else None, only_emails=chosen_emails)
+    export_choice = input("Export previews? (none/html/json/pdf): ").strip().lower()
+    export_format = export_choice if export_choice in ('html', 'json', 'pdf') else None
+    send_campaign(filename, template_choice, context if context else None, only_emails=chosen_emails, export_format=export_format)
 
 if __name__ == "__main__":
     main()
